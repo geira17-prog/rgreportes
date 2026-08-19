@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RG Reportes Web V5</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">RG <span>REPORTES</span></div>
+    <p>Entrar no sistema</p>
+    <label>Email<input id="loginEmail" type="email" autocomplete="username"></label>
+    <label>Password<input id="loginPassword" type="password" autocomplete="current-password"></label>
+    <button class="primary" id="btnLogin">Entrar</button>
+    <p id="loginMsg" class="hint"></p>
+  </div>
+</div>
+
+<aside class="sidebar" id="appShell">
+  <div class="brand">RG <span>REPORTES</span></div>
+  <nav>
+    <button class="nav active" data-page="dashboard">🏠 Dashboard</button>
+    <button class="nav" data-page="novo">➕ Novo Reporte</button>
+    <button class="nav" data-page="reportes">📋 Reportes</button>
+    <button class="nav" data-page="atualizacoes">📢 Atualizações</button>
+    <button class="nav" data-page="emails">📧 Emails</button>
+    <button class="nav" data-page="config">⚙️ Configuração</button>
+    <button class="nav" data-page="sobre">ℹ️ Sobre</button>
+  </nav>
+  <div class="userbox">
+    <strong id="userName"></strong>
+    <small id="userLogin"></small>
+    <button class="linkbtn" id="btnLogout">Terminar sessão</button>
+  </div>
+</aside>
+
+<main class="main" id="mainApp">
+<header>
+  <div><h1 id="pageTitle">Dashboard</h1><p id="pageSubtitle">Gestão de reportes técnicos</p></div>
+  <button class="primary" onclick="showPage('novo')">+ Novo Reporte</button>
+</header>
+
+<section id="dashboard" class="page active-page">
+  <div class="cards">
+    <div class="card"><span>Total</span><b id="total">0</b></div>
+    <div class="card wait"><span>Aguardar</span><b id="aguardar">0</b></div>
+    <div class="card standby"><span>Stand By</span><b id="standby">0</b></div>
+    <div class="card done"><span>Resolvidos</span><b id="resolvidos">0</b></div>
+  </div>
+  <div class="panel reminder-panel"><div class="panel-head"><h2>🔔 Avisos de atualizações</h2><span class="hint">Lembretes pendentes</span></div><div id="lembretesDashboard"></div></div>
+  <div class="panel"><div class="panel-head"><h2>Reportes recentes</h2><button class="linkbtn" onclick="showPage('reportes')">Ver todos</button></div><div id="recent"></div></div>
+</section>
+
+<section id="novo" class="page">
+<div class="panel"><h2>Novo Reporte</h2><div class="formgrid">
+<label>Reporte<input id="id" readonly></label><label>Técnico<input id="tecnico" readonly></label>
+<label>Aplicação<select id="aplicacao"><option value="">Selecione...</option><option>Atendimento (ATE)</option><option>Aprovisionamento</option><option>APAM</option><option>Cemitérios</option><option>Contratação Publica</option><option>Ensino</option><option>Execuções Fiscais</option><option>Faturação Diversa</option><option>Feiras e Mercados</option><option>Higiene e Segurança no Trabalho</option><option>Maquinas Viaturas</option><option>Obras Municipais</option><option>PES (Recursos Humanos)</option><option>Publicidade</option><option>Rendas</option><option>SAD</option><option>Serviços Online</option><option>SigmaDocWeb</option><option>SNC-AP</option><option>Urbanismo</option><option>Património</option></select></label>
+<label>N.º Ticket<input id="ticket" placeholder="N.º do ticket"></label><label>Data/Hora<input id="datahora" readonly></label><label>Estado<select id="estado"><option>Aguardar</option><option>Resolvido</option><option>Stand By</option></select></label>
+<label class="full">Problema<textarea id="problema" rows="7"></textarea></label></div>
+<div class="actions"><button class="secondary" onclick="limparFormulario()">Limpar</button><button class="primary outline" onclick="guardar(false)">Guardar</button><button class="primary" onclick="guardar(true)">Guardar + Preparar Email</button></div>
+</div></section>
+
+<section id="reportes" class="page">
+<div class="panel"><div class="toolbar"><input id="pesquisa" placeholder="Pesquisar..." oninput="renderReportes()"><select id="filtroEstado" onchange="renderReportes()"><option value="">Todos</option><option>Aguardar</option><option>Resolvido</option><option>Stand By</option></select></div>
+<div class="tablewrap"><table><thead><tr><th>Reporte</th><th>Aplicação</th><th>Técnico</th><th>Ticket</th><th>Problema</th><th>Data/Hora</th><th>Estado</th><th>Ações</th></tr></thead><tbody id="tabela"></tbody></table></div></div>
+</section>
+
+<section id="atualizacoes" class="page">
+<div class="panel"><h2>📢 Atualizações programadas</h2><div class="formgrid">
+<label>Data<input type="date" id="atData"></label><label>Hora inicial<input type="time" id="atInicio"></label><label>Hora final<input type="time" id="atFim"></label><label>Aplicação/Serviço<input id="atServico" placeholder="Opcional"></label><label>Motivo<input id="atMotivo" placeholder="Ex.: manutenção programada"></label><label>Estado<select id="atEstado"><option>Agendada</option><option>Em curso</option><option>Concluída</option><option>Cancelada</option></select></label>
+<label class="full">Observações<textarea id="atObs" rows="4"></textarea></label><label class="full check"><input type="checkbox" id="atLembretes"> Criar lembretes de aviso (3 dias antes e 1 dia antes)</label></div>
+<h3>Destinatários</h3><div class="formgrid"><label>Para<input id="atPara"></label><label>CC<input id="atCc"></label><label>BCC<input id="atBcc"></label></div>
+<h3>Modelo — aviso 3 dias antes</h3><div class="formgrid"><label class="full">Assunto<input id="atAssunto3"></label><label class="full">Corpo<textarea id="atCorpo3" rows="10"></textarea></label></div>
+<h3>Modelo — véspera</h3><div class="formgrid"><label class="full">Assunto<input id="atAssunto1"></label><label class="full">Corpo<textarea id="atCorpo1" rows="10"></textarea></label></div>
+<div class="actions"><button class="secondary" onclick="guardarAtualizacao(false)">Guardar Atualização</button><button class="primary" onclick="guardarAtualizacao(true)">Guardar + Gerar Email</button></div></div>
+<div class="panel"><h2>Histórico de atualizações</h2><div class="tablewrap"><table><thead><tr><th>ID</th><th>Data</th><th>Horário</th><th>Serviço</th><th>Estado</th><th>Lembretes</th><th>Ações</th></tr></thead><tbody id="tabelaAtualizacoes"></tbody></table></div></div>
+</section>
+
+<section id="emails" class="page">
+<div class="panel"><h2>📧 Configuração de Emails</h2><div class="formgrid"><label>Para<input id="emailPara"></label><label>CC<input id="emailCc"></label><label>BCC<input id="emailBcc"></label><label class="full">Assunto<input id="emailAssunto"></label><label class="full">Corpo<textarea id="emailCorpo" rows="14"></textarea></label></div>
+<button class="primary" onclick="guardarEmailConfig()">Guardar configuração</button><p class="hint">A aplicação prepara o email no cliente predefinido. A integração direta com Outlook será feita posteriormente, se necessário.</p></div>
+</section>
+
+<section id="config" class="page">
+<div class="panel"><h2>⚙️ Configuração</h2><div class="formgrid"><label>Nome do técnico<input id="cfgTecnico"></label><label>Login<input id="cfgLogin"></label></div><button class="primary" onclick="guardarUtilizador()">Guardar utilizador</button>
+<hr><p class="hint">Os reportes e atualizações estão agora na base de dados Supabase e podem ser utilizados nos 2 PCs.</p></div>
+</section>
+
+<section id="sobre" class="page"><div class="about-card">
+<div class="about-head"><span class="about-info">ⓘ</span><h2>Sobre a Aplicação</h2><button class="about-close" onclick="showPage('dashboard')">×</button></div>
+<div class="about-content"><div class="about-brand"><div class="logo-wrap"><div class="rg-logo">RG</div><div class="reportes-word">REPORTES</div></div><div class="gold-line"></div><div class="by">by <strong>Ricardo Gingeira</strong></div></div>
+<div class="about-details"><h1>RG REPORTES</h1><p class="about-sub">Sistema de Gestão de Reportes<br>e Atualizações</p>
+<div class="about-row"><span>♙</span><div><small>Criado por:</small><b>Ricardo Gingeira</b></div></div>
+<div class="about-row"><span>&lt;/&gt;</span><div><small>Desenvolvido para:</small><b>Gestão de reportes técnicos,<br>tickets, emails e atualizações programadas.</b></div></div>
+<div class="about-row"><span>◇</span><div><small>Versão:</small><b>RG Reportes Web V5 + Supabase</b></div></div>
+<div class="about-row"><span>▣</span><div><small>Ano:</small><b>2026</b></div></div></div></div>
+<div class="about-footer">© 2026 Ricardo Gingeira<br>Todos os direitos reservados.</div></div></section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
