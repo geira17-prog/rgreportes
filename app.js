@@ -187,37 +187,34 @@ function getCCReportes() {
 
 function prepMail(r) {
     r.emailPreparado = true;
-
     localStorage.setItem(RK, JSON.stringify(reports));
 
-    // =====================================================
-    // REPORTES
-    // CC automático conforme o utilizador
-    // =====================================================
-    const ccAutomatico = getCCReportes();
+    const para = encodeURIComponent(emailCfg.para || "");
+    const cc = encodeURIComponent(emailCfg.cc || "");
+    const bcc = encodeURIComponent(emailCfg.bcc || "");
+    const assunto = encodeURIComponent(sub(emailCfg.assunto, r));
+    const corpo = encodeURIComponent(sub(emailCfg.corpo, r));
 
-    const params = [];
+    let url = "mailto:" + para + "?";
 
-    // Para
-    if (emailCfg.para && emailCfg.para.trim()) {
-        params.push(
-            "to=" + encodeURIComponent(emailCfg.para.trim())
-        );
+    const parametros = [];
+
+    if (emailCfg.cc && emailCfg.cc.trim() !== "") {
+        parametros.push("cc=" + cc);
     }
 
-    // CC
-    if (ccAutomatico) {
-        params.push(
-            "cc=" + encodeURIComponent(ccAutomatico)
-        );
+    if (emailCfg.bcc && emailCfg.bcc.trim() !== "") {
+        parametros.push("bcc=" + bcc);
     }
 
-    // BCC - só adiciona se tiver valor
-    if (emailCfg.bcc && emailCfg.bcc.trim()) {
-        params.push(
-            "bcc=" + encodeURIComponent(emailCfg.bcc.trim())
-        );
-    }
+    parametros.push("subject=" + assunto);
+    parametros.push("body=" + corpo);
+
+    url += parametros.join("&");
+
+    location.href = url;
+
+    limparFormulario();
 
     // Assunto
     params.push(
