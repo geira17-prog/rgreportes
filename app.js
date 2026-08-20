@@ -156,6 +156,7 @@ function sub(t,r){
     .replaceAll("{ESTADO}",r.estado);
 }
 
+// CORRIGIDO: Formatação correta do mailto para reportes
 async function prepMail(r){
   await supabaseClient.from("reportes").update({email_preparado:true}).eq("id",r.dbid);
   r.emailPreparado=true;
@@ -163,16 +164,21 @@ async function prepMail(r){
   const subject = sub(emailCfg.assunto, r);
   const body = sub(emailCfg.corpo, r);
 
-  let mailto = "mailto:" + encodeURIComponent(emailCfg.para || "");
+  const para = (emailCfg.para || "").trim();
+  const cc = (emailCfg.cc || "").trim();
+  const bcc = (emailCfg.bcc || "").trim();
+
+  let mailto = `mailto:${para}`;
   const params = [];
 
-  if (emailCfg.cc && emailCfg.cc.trim()) params.push("cc=" + encodeURIComponent(emailCfg.cc.trim()));
-  if (emailCfg.bcc && emailCfg.bcc.trim()) params.push("bcc=" + encodeURIComponent(emailCfg.bcc.trim()));
-  
-  params.push("subject=" + encodeURIComponent(subject));
-  params.push("body=" + encodeURIComponent(body));
+  if (cc) params.push("cc=" + encodeURIComponent(cc));
+  if (bcc) params.push("bcc=" + encodeURIComponent(bcc));
+  if (subject) params.push("subject=" + encodeURIComponent(subject));
+  if (body) params.push("body=" + encodeURIComponent(body));
 
-  mailto += "?" + params.join("&");
+  if (params.length > 0) {
+    mailto += "?" + params.join("&");
+  }
 
   location.href = mailto;
   await limparFormulario();
@@ -330,6 +336,7 @@ async function apagarAtualizacao(dbid){
   updates=updates.filter(x=>String(x.dbid)!==String(dbid));renderUpdates();renderDash();
 }
 
+// CORRIGIDO: Formatação correta do mailto para atualizações
 async function gerarEmailUpdate(u,tipo){
   const dias=tipo===1?1:3;
   const assunto=tipo===1?$("atAssunto1").value:$("atAssunto3").value;
@@ -340,20 +347,21 @@ async function gerarEmailUpdate(u,tipo){
   u[tipo===1?"aviso1Enviado":"aviso3Enviado"]=true;
   renderUpdates();renderDash();
 
-  const para = $("atPara").value;
-  const cc = $("atCc").value;
-  const bcc = $("atBcc").value;
+  const para = ($("atPara").value || "").trim();
+  const cc = ($("atCc").value || "").trim();
+  const bcc = ($("atBcc").value || "").trim();
 
-  let mailto = "mailto:" + encodeURIComponent(para || "");
+  let mailto = `mailto:${para}`;
   const params = [];
 
-  if (cc && cc.trim()) params.push("cc=" + encodeURIComponent(cc.trim()));
-  if (bcc && bcc.trim()) params.push("bcc=" + encodeURIComponent(bcc.trim()));
+  if (cc) params.push("cc=" + encodeURIComponent(cc));
+  if (bcc) params.push("bcc=" + encodeURIComponent(bcc));
+  if (assunto) params.push("subject=" + encodeURIComponent(vars(assunto, u, dias)));
+  if (corpo) params.push("body=" + encodeURIComponent(vars(corpo, u, dias)));
 
-  params.push("subject=" + encodeURIComponent(vars(assunto, u, dias)));
-  params.push("body=" + encodeURIComponent(vars(corpo, u, dias)));
-
-  mailto += "?" + params.join("&");
+  if (params.length > 0) {
+    mailto += "?" + params.join("&");
+  }
 
   location.href = mailto;
 }
