@@ -193,28 +193,6 @@ function prepMail(r) {
     limparFormulario();
 }
 
-    // Assunto
-    params.push(
-        "subject=" + encodeURIComponent(
-            sub(emailCfg.assunto, r)
-        )
-    );
-
-    // Corpo
-    params.push(
-        "body=" + encodeURIComponent(
-            sub(emailCfg.corpo, r)
-        )
-    );
-
-    // Montar o mailto corretamente
-    const mailto = "mailto:?" + params.join("&");
-
-    window.location.href = mailto;
-
-    limparFormulario();
-}
-
 function renderDash(){
   $("total").textContent=reports.length;
   $("aguardar").textContent=reports.filter(r=>r.estado==="Aguardar").length;
