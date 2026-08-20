@@ -156,41 +156,12 @@ function sub(t,r){
     .replaceAll("{ESTADO}",r.estado);
 }
 
-function getCCReportes() {
-    const emailUtilizador = (user?.login || user?.email || "").toString().trim().toLowerCase();
-
-    if (emailUtilizador.includes("rgingeira")) {
-        return "rgarcia@mun-montijo.pt";
-    }
-
-    if (emailUtilizador.includes("rgarcia")) {
-        return "rgingeira@gmail.com";
-    }
-
-    return (emailCfg.cc || "").trim();
-}
-
-function prepMail(r) {
-    r.emailPreparado = true;
-
-    const ccFinal = getCCReportes();
-    const para = encodeURIComponent(emailCfg.para || "");
-    const cc = encodeURIComponent(ccFinal);
-    const bcc = encodeURIComponent(emailCfg.bcc || "");
-    const assunto = encodeURIComponent(sub(emailCfg.assunto, r));
-    const corpo = encodeURIComponent(sub(emailCfg.corpo, r));
-
-    const parametros = [];
-
-    if (ccFinal !== "") parametros.push("cc=" + cc);
-    if (emailCfg.bcc && emailCfg.bcc.trim() !== "") parametros.push("bcc=" + bcc);
-    
-    parametros.push("subject=" + assunto);
-    parametros.push("body=" + corpo);
-
-    window.location.href = "mailto:" + para + "?" + parametros.join("&");
-
-    limparFormulario();
+async function prepMail(r){
+  await supabaseClient.from("reportes").update({email_preparado:true}).eq("id",r.dbid);
+  r.emailPreparado=true;
+  location.href="mailto:"+encodeURIComponent(emailCfg.para)+"?cc="+encodeURIComponent(emailCfg.cc)+"&bcc="+encodeURIComponent(emailCfg.bcc||"")+
+    "&subject="+encodeURIComponent(sub(emailCfg.assunto,r))+"&body="+encodeURIComponent(sub(emailCfg.corpo,r));
+  await limparFormulario();
 }
 
 function renderDash(){
