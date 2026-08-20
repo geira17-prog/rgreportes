@@ -156,12 +156,89 @@ function sub(t,r){
     .replaceAll("{ESTADO}",r.estado);
 }
 
-async function prepMail(r){
-  await supabaseClient.from("reportes").update({email_preparado:true}).eq("id",r.dbid);
-  r.emailPreparado=true;
-  location.href="mailto:"+encodeURIComponent(emailCfg.para)+"?cc="+encodeURIComponent(emailCfg.cc)+"&bcc="+encodeURIComponent(emailCfg.bcc||"")+
-    "&subject="+encodeURIComponent(sub(emailCfg.assunto,r))+"&body="+encodeURIComponent(sub(emailCfg.corpo,r));
-  await limparFormulario();
+function getCCReportes() {
+    // CC automático apenas para REPORTES
+    const emailUtilizador = (
+        user?.email ||
+        user?.login ||
+        ""
+    ).toString().trim().toLowerCase();
+
+    if (
+        emailUtilizador === "rgingeira@mun-muntijo.pt" ||
+        emailUtilizador === "rgingeira" ||
+        emailUtilizador.includes("rgingeira")
+    ) {
+        return "rgarcia@mun-montijo.pt";
+    }
+
+    if (
+        emailUtilizador === "rgarcia@mun-muntijo.pt" ||
+        emailUtilizador === "rgarcia" ||
+        emailUtilizador.includes("rgarcia")
+    ) {
+        return "rgingeira@gmail.com";
+    }
+
+    // Se for outro utilizador, mantém o CC configurado
+    return (emailCfg.cc || "").trim();
+}
+
+
+function prepMail(r) {
+    r.emailPreparado = true;
+
+    localStorage.setItem(RK, JSON.stringify(reports));
+
+    // =====================================================
+    // REPORTES
+    // CC automático conforme o utilizador
+    // =====================================================
+    const ccAutomatico = getCCReportes();
+
+    const params = [];
+
+    // Para
+    if (emailCfg.para && emailCfg.para.trim()) {
+        params.push(
+            "to=" + encodeURIComponent(emailCfg.para.trim())
+        );
+    }
+
+    // CC
+    if (ccAutomatico) {
+        params.push(
+            "cc=" + encodeURIComponent(ccAutomatico)
+        );
+    }
+
+    // BCC - só adiciona se tiver valor
+    if (emailCfg.bcc && emailCfg.bcc.trim()) {
+        params.push(
+            "bcc=" + encodeURIComponent(emailCfg.bcc.trim())
+        );
+    }
+
+    // Assunto
+    params.push(
+        "subject=" + encodeURIComponent(
+            sub(emailCfg.assunto, r)
+        )
+    );
+
+    // Corpo
+    params.push(
+        "body=" + encodeURIComponent(
+            sub(emailCfg.corpo, r)
+        )
+    );
+
+    // Montar o mailto corretamente
+    const mailto = "mailto:?" + params.join("&");
+
+    window.location.href = mailto;
+
+    limparFormulario();
 }
 
 function renderDash(){
