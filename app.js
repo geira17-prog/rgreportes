@@ -72,16 +72,16 @@ const badge=s=>`<span class="badge ${s==="Resolvido"?"res":s==="Stand By"?"sb":"
 
 function setBusy(btn,busy,text="Aguarde..."){if(!btn)return;btn.disabled=busy;if(busy){btn.dataset.old=text;btn.textContent=text}else btn.textContent=btn.dataset.old||btn.textContent}
 
-// Função auxiliar para injetar os e-mails dinâmicos com base no técnico/login
+// Função para identificar o email do técnico logado
 function obterEmailTecnico() {
   const loginAtual = (user.login || "").toLowerCase();
   const nomeAtual = (user.nome || "").toLowerCase();
 
-  // Verifica se é o rgingeira
+  // Se for rgingeira (Rui)
   if (loginAtual.includes("rgingeira") || nomeAtual.includes("gingeira")) {
     return "rgarcia@mun-montijo.pt"; // <-- Ajuste para o e-mail real do Rui
   }
-  // Verifica se é o rgarcia
+  // Se for rgarcia (Ricardo)
   if (loginAtual.includes("rgarcia") || nomeAtual.includes("garcia")) {
     return "rgingeira@mun-montijo.pt"; // <-- Ajuste para o e-mail real do Ricardo
   }
@@ -172,7 +172,7 @@ function sub(t,r){
     .replaceAll("{ESTADO}",r.estado);
 }
 
-// prepMail atualizado com junta do e-mail do técnico
+// prepMail: adiciona o email do técnico no campo CC
 async function prepMail(r){
   await supabaseClient.from("reportes").update({email_preparado:true}).eq("id",r.dbid);
   r.emailPreparado=true;
@@ -180,17 +180,18 @@ async function prepMail(r){
   const subject = sub(emailCfg.assunto, r);
   const body = sub(emailCfg.corpo, r);
 
-  // Junta o e-mail do técnico com o e-mail da configuração
+  const para = (emailCfg.para || "").trim();
+  
+  // Junta o e-mail do técnico com o CC da configuração
   const emailTecnico = obterEmailTecnico();
-  const emailsPara = [emailTecnico, (emailCfg.para || "").trim()].filter(Boolean).join(";");
+  const emailsCc = [emailTecnico, (emailCfg.cc || "").trim()].filter(Boolean).join(";");
 
-  const cc = (emailCfg.cc || "").trim();
   const bcc = (emailCfg.bcc || "").trim();
 
-  let mailto = `mailto:${emailsPara}`;
+  let mailto = `mailto:${para}`;
   const params = [];
 
-  if (cc) params.push("cc=" + encodeURIComponent(cc));
+  if (emailsCc) params.push("cc=" + encodeURIComponent(emailsCc));
   if (bcc) params.push("bcc=" + encodeURIComponent(bcc));
   if (subject) params.push("subject=" + encodeURIComponent(subject));
   if (body) params.push("body=" + encodeURIComponent(body));
@@ -355,7 +356,7 @@ async function apagarAtualizacao(dbid){
   updates=updates.filter(x=>String(x.dbid)!==String(dbid));renderUpdates();renderDash();
 }
 
-// gerarEmailUpdate atualizado com junta do e-mail do técnico
+// gerarEmailUpdate: adiciona o email do técnico no campo CC
 async function gerarEmailUpdate(u,tipo){
   const dias=tipo===1?1:3;
   const assunto=tipo===1?$("atAssunto1").value:$("atAssunto3").value;
@@ -366,17 +367,18 @@ async function gerarEmailUpdate(u,tipo){
   u[tipo===1?"aviso1Enviado":"aviso3Enviado"]=true;
   renderUpdates();renderDash();
 
-  // Junta o e-mail do técnico com o e-mail da página de atualizações
+  const para = ($("atPara").value || "").trim();
+  
+  // Junta o e-mail do técnico com o CC da página de atualizações
   const emailTecnico = obterEmailTecnico();
-  const emailsPara = [emailTecnico, ($("atPara").value || "").trim()].filter(Boolean).join(";");
+  const emailsCc = [emailTecnico, ($("atCc").value || "").trim()].filter(Boolean).join(";");
 
-  const cc = ($("atCc").value || "").trim();
   const bcc = ($("atBcc").value || "").trim();
 
-  let mailto = `mailto:${emailsPara}`;
+  let mailto = `mailto:${para}`;
   const params = [];
 
-  if (cc) params.push("cc=" + encodeURIComponent(cc));
+  if (emailsCc) params.push("cc=" + encodeURIComponent(emailsCc));
   if (bcc) params.push("bcc=" + encodeURIComponent(bcc));
   if (assunto) params.push("subject=" + encodeURIComponent(vars(assunto, u, dias)));
   if (corpo) params.push("body=" + encodeURIComponent(vars(corpo, u, dias)));
