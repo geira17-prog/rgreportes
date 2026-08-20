@@ -72,6 +72,22 @@ const badge=s=>`<span class="badge ${s==="Resolvido"?"res":s==="Stand By"?"sb":"
 
 function setBusy(btn,busy,text="Aguarde..."){if(!btn)return;btn.disabled=busy;if(busy){btn.dataset.old=text;btn.textContent=text}else btn.textContent=btn.dataset.old||btn.textContent}
 
+// Função auxiliar para injetar os e-mails dinâmicos com base no técnico/login
+function obterEmailTecnico() {
+  const loginAtual = (user.login || "").toLowerCase();
+  const nomeAtual = (user.nome || "").toLowerCase();
+
+  // Verifica se é o rgingeira
+  if (loginAtual.includes("rgingeira") || nomeAtual.includes("gingeira")) {
+    return "rgarcia@mun-montijo.pt"; // <-- Ajuste para o e-mail real do Rui
+  }
+  // Verifica se é o rgarcia
+  if (loginAtual.includes("rgarcia") || nomeAtual.includes("garcia")) {
+    return "rgingeira@mun-montijo.pt"; // <-- Ajuste para o e-mail real do Ricardo
+  }
+  return "";
+}
+
 async function carregarDados(){
   const [{data:r,error:re},{data:u,error:ue}]=await Promise.all([
     supabaseClient.from("reportes").select("*").order("id",{ascending:false}),
@@ -156,7 +172,7 @@ function sub(t,r){
     .replaceAll("{ESTADO}",r.estado);
 }
 
-// CORRIGIDO: Formatação correta do mailto para reportes
+// prepMail atualizado com junta do e-mail do técnico
 async function prepMail(r){
   await supabaseClient.from("reportes").update({email_preparado:true}).eq("id",r.dbid);
   r.emailPreparado=true;
@@ -164,11 +180,14 @@ async function prepMail(r){
   const subject = sub(emailCfg.assunto, r);
   const body = sub(emailCfg.corpo, r);
 
-  const para = (emailCfg.para || "").trim();
+  // Junta o e-mail do técnico com o e-mail da configuração
+  const emailTecnico = obterEmailTecnico();
+  const emailsPara = [emailTecnico, (emailCfg.para || "").trim()].filter(Boolean).join(";");
+
   const cc = (emailCfg.cc || "").trim();
   const bcc = (emailCfg.bcc || "").trim();
 
-  let mailto = `mailto:${para}`;
+  let mailto = `mailto:${emailsPara}`;
   const params = [];
 
   if (cc) params.push("cc=" + encodeURIComponent(cc));
@@ -336,7 +355,7 @@ async function apagarAtualizacao(dbid){
   updates=updates.filter(x=>String(x.dbid)!==String(dbid));renderUpdates();renderDash();
 }
 
-// CORRIGIDO: Formatação correta do mailto para atualizações
+// gerarEmailUpdate atualizado com junta do e-mail do técnico
 async function gerarEmailUpdate(u,tipo){
   const dias=tipo===1?1:3;
   const assunto=tipo===1?$("atAssunto1").value:$("atAssunto3").value;
@@ -347,11 +366,14 @@ async function gerarEmailUpdate(u,tipo){
   u[tipo===1?"aviso1Enviado":"aviso3Enviado"]=true;
   renderUpdates();renderDash();
 
-  const para = ($("atPara").value || "").trim();
+  // Junta o e-mail do técnico com o e-mail da página de atualizações
+  const emailTecnico = obterEmailTecnico();
+  const emailsPara = [emailTecnico, ($("atPara").value || "").trim()].filter(Boolean).join(";");
+
   const cc = ($("atCc").value || "").trim();
   const bcc = ($("atBcc").value || "").trim();
 
-  let mailto = `mailto:${para}`;
+  let mailto = `mailto:${emailsPara}`;
   const params = [];
 
   if (cc) params.push("cc=" + encodeURIComponent(cc));
