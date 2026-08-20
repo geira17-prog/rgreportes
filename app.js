@@ -5,51 +5,39 @@ let reports=[];
 let updates=[];
 let emailCfg=JSON.parse(localStorage.getItem(emailKey)||"null")||{
   para:"",cc:"",bcc:"",
-  assunto:"[REPORTO #{ID}] {APLICACAO} - Ticket {TICKET}",
+  assunto:"CMMontijo - Aplicação {APLICACAO}[REPORTO #{ID}] ",
   corpo:`Bom dia,
 
-Foi registada uma ocorrência relativamente à aplicação {APLICACAO}.
+  Foi nos reportado {PROBLEMA} .
 
-ID do reporte: {ID}
-N.º Ticket: {TICKET}
-Técnico: {TECNICO}
-Data/Hora: {DATA}
 
-Problema:
-{PROBLEMA}
+Podem, por favor, ajudar na verificação desta situação? Obrigado.
 
-Agradeço a análise da situação.
-
-Cumprimentos,
-{TECNICO}`
+`
 };
 
 const updateDefault={
   para:"",cc:"",bcc:"",
-  assunto3:"Aviso — Atualização programada em {DIAS} dias — {DATA}",
-  corpo3:`Bom dia,
+  assunto3:"Aplicações {SERVICO} indisponíveis — entre as {HORA_INICIAL} e {HORA_FINAL}.",
+  corpo3:`Bom dia, caros(as) colegas,
 
-Informamos que está prevista uma atualização programada para o dia {DATA}, entre as {HORA_INICIAL} e {HORA_FINAL}.
+Informamos que está prevista uma atualização para o dia {DATA}, entre as {HORA_INICIAL} e {HORA_FINAL}.
 
-Durante este período, a aplicação/serviço {SERVICO} poderá encontrar-se indisponível.
+Durante este período, a aplicação {SERVICO} encontrar-se indisponível.
 
-Motivo: {MOTIVO}
+Pedimos desculpa pelo incómodo causado. 
 
-Este é um aviso prévio para que possam ser tomadas as devidas precauções.
+Com os melhores cumprimentos,`,
+  assunto1:"Aplicações {SERVICO} indisponíveis — amanhã dia {DATA}, entre as {HORA_INICIAL} e {HORA_FINAL}.",
+  corpo1:`Bom dia, caros(as) colegas,
 
-Cumprimentos,`,
-  assunto1:"⚠️ Lembrete — Atualização programada amanhã — {DATA}",
-  corpo1:`Bom dia,
+Relembramos que amanhã, dia {DATA}, está prevista uma atualização entre as {HORA_INICIAL} e {HORA_FINAL}.
 
-Relembramos que amanhã, {DATA}, será realizada uma atualização programada entre as {HORA_INICIAL} e {HORA_FINAL}.
+Durante este período, a aplicação {SERVICO} encontrar-se indisponível.
 
-Durante este período, a aplicação/serviço {SERVICO} estará indisponível.
+Pedimos desculpa pelo incómodo causado. 
 
-Motivo: {MOTIVO}
-
-Solicitamos que tenham em consideração esta indisponibilidade durante o período indicado.
-
-Cumprimentos,`
+Com os melhores cumprimentos,`
 };
 
 let user=JSON.parse(localStorage.getItem(userKey)||"null")||{nome:"Ricardo Gingeira",login:"ricardo"};
