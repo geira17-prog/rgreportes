@@ -159,8 +159,22 @@ function sub(t,r){
 async function prepMail(r){
   await supabaseClient.from("reportes").update({email_preparado:true}).eq("id",r.dbid);
   r.emailPreparado=true;
-  location.href="mailto:"+encodeURIComponent(emailCfg.para)+"?cc="+encodeURIComponent(emailCfg.cc)+"&bcc="+encodeURIComponent(emailCfg.bcc||"")+
-    "&subject="+encodeURIComponent(sub(emailCfg.assunto,r))+"&body="+encodeURIComponent(sub(emailCfg.corpo,r));
+
+  const subject = sub(emailCfg.assunto, r);
+  const body = sub(emailCfg.corpo, r);
+
+  let mailto = "mailto:" + encodeURIComponent(emailCfg.para || "");
+  const params = [];
+
+  if (emailCfg.cc && emailCfg.cc.trim()) params.push("cc=" + encodeURIComponent(emailCfg.cc.trim()));
+  if (emailCfg.bcc && emailCfg.bcc.trim()) params.push("bcc=" + encodeURIComponent(emailCfg.bcc.trim()));
+  
+  params.push("subject=" + encodeURIComponent(subject));
+  params.push("body=" + encodeURIComponent(body));
+
+  mailto += "?" + params.join("&");
+
+  location.href = mailto;
   await limparFormulario();
 }
 
@@ -321,11 +335,27 @@ async function gerarEmailUpdate(u,tipo){
   const assunto=tipo===1?$("atAssunto1").value:$("atAssunto3").value;
   const corpo=tipo===1?$("atCorpo1").value:$("atCorpo3").value;
   const payload=tipo===1?{aviso1_enviado:true}:{aviso3_enviado:true};
+  
   await supabaseClient.from("atualizacoes").update(payload).eq("id",u.dbid);
   u[tipo===1?"aviso1Enviado":"aviso3Enviado"]=true;
   renderUpdates();renderDash();
-  location.href="mailto:"+encodeURIComponent($("atPara").value)+"?cc="+encodeURIComponent($("atCc").value)+"&bcc="+encodeURIComponent($("atBcc").value)+
-    "&subject="+encodeURIComponent(vars(assunto,u,dias))+"&body="+encodeURIComponent(vars(corpo,u,dias));
+
+  const para = $("atPara").value;
+  const cc = $("atCc").value;
+  const bcc = $("atBcc").value;
+
+  let mailto = "mailto:" + encodeURIComponent(para || "");
+  const params = [];
+
+  if (cc && cc.trim()) params.push("cc=" + encodeURIComponent(cc.trim()));
+  if (bcc && bcc.trim()) params.push("bcc=" + encodeURIComponent(bcc.trim()));
+
+  params.push("subject=" + encodeURIComponent(vars(assunto, u, dias)));
+  params.push("body=" + encodeURIComponent(vars(corpo, u, dias)));
+
+  mailto += "?" + params.join("&");
+
+  location.href = mailto;
 }
 
 async function login(){
