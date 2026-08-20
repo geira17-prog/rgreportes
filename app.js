@@ -157,64 +157,41 @@ function sub(t,r){
 }
 
 function getCCReportes() {
-    // CC automático apenas para REPORTES
-    const emailUtilizador = (
-        user?.email ||
-        user?.login ||
-        ""
-    ).toString().trim().toLowerCase();
+    const emailUtilizador = (user?.login || user?.email || "").toString().trim().toLowerCase();
 
-    if (
-        emailUtilizador === "rgingeira@mun-muntijo.pt" ||
-        emailUtilizador === "rgingeira" ||
-        emailUtilizador.includes("rgingeira")
-    ) {
+    if (emailUtilizador.includes("rgingeira")) {
         return "rgarcia@mun-montijo.pt";
     }
 
-    if (
-        emailUtilizador === "rgarcia@mun-muntijo.pt" ||
-        emailUtilizador === "rgarcia" ||
-        emailUtilizador.includes("rgarcia")
-    ) {
+    if (emailUtilizador.includes("rgarcia")) {
         return "rgingeira@gmail.com";
     }
 
-    // Se for outro utilizador, mantém o CC configurado
     return (emailCfg.cc || "").trim();
 }
 
-
 function prepMail(r) {
     r.emailPreparado = true;
-    localStorage.setItem(RK, JSON.stringify(reports));
 
+    const ccFinal = getCCReportes();
     const para = encodeURIComponent(emailCfg.para || "");
-    const cc = encodeURIComponent(emailCfg.cc || "");
+    const cc = encodeURIComponent(ccFinal);
     const bcc = encodeURIComponent(emailCfg.bcc || "");
     const assunto = encodeURIComponent(sub(emailCfg.assunto, r));
     const corpo = encodeURIComponent(sub(emailCfg.corpo, r));
 
-    let url = "mailto:" + para + "?";
-
     const parametros = [];
 
-    if (emailCfg.cc && emailCfg.cc.trim() !== "") {
-        parametros.push("cc=" + cc);
-    }
-
-    if (emailCfg.bcc && emailCfg.bcc.trim() !== "") {
-        parametros.push("bcc=" + bcc);
-    }
-
+    if (ccFinal !== "") parametros.push("cc=" + cc);
+    if (emailCfg.bcc && emailCfg.bcc.trim() !== "") parametros.push("bcc=" + bcc);
+    
     parametros.push("subject=" + assunto);
     parametros.push("body=" + corpo);
 
-    url += parametros.join("&");
-
-    location.href = url;
+    window.location.href = "mailto:" + para + "?" + parametros.join("&");
 
     limparFormulario();
+}
 
     // Assunto
     params.push(
