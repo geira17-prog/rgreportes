@@ -202,7 +202,7 @@ function renderDash(){
   $("standby").textContent=reports.filter(r=>r.estado==="Stand By").length;
   $("resolvidos").textContent=reports.filter(r=>r.estado==="Resolvido").length;
   const lp=lembretesPendentes();
-  $("lembretesDashboard").innerHTML=lp.length?lp.map(x=>`<div class="reminder"><div><strong>${x.tipo==="3 dias"?"🟠 Aviso prévio":"🔴 Lembrete da atualização"}</strong><br><b>${esc(x.u.servico)}</b> — ${esc(x.u.data)} — ${esc(x.u.inicio)} às ${esc(x.u.fim)}<br><span>${x.tipo==="em atraso"?"⚠️ Email pendente/em atraso":x.tipo==="véspera"?"A atualização é amanhã.":"Aviso de 3 dias pendente."}</span></div><button class="primary small" onclick='gerarEmailUpdate(${JSON.stringify(x.u)},${x.tipo==="véspera"||x.tipo==="em atraso"?1:3})'>📧 Preparar Email</button></div>`).join("")
+  $("lembretesDashboard").innerHTML=lp.length?lp.map(x=>`<div class="reminder"><div><strong>${x.tipo==="3 dias"?"🟠 Aviso prévio":"🔴 Lembrete da atualização"}</strong><br><b>${esc(x.u.servico)}</b> — ${esc(x.u.data)} — ${esc(x.u.inicio)} às ${esc(x.u.fim)}<br><span>${x.tipo==="em atraso"?"⚠️ Email pendente/em atraso":x.tipo==="véspera"?"A atualização é amanhã.":"Aviso de 3 dias pendente."}</span></div><button class="primary small" onclick="gerarEmailUpdate('${x.u.dbid}', ${x.tipo==='véspera'||x.tipo==='em atraso'?1:3})">📧 Preparar Email</button></div>`).join("")
   :"<p class='hint'>Não existem avisos pendentes.</p>";
   $("recent").innerHTML=reports.length?`<table><thead><tr><th>Reporte</th><th>Aplicação</th><th>Técnico</th><th>Ticket</th><th>Estado</th></tr></thead><tbody>${reports.slice(0,8).map(r=>`<tr><td>${esc(r.id)}</td><td>${esc(r.aplicacao)}</td><td>${esc(r.tecnico)}</td><td>${esc(r.ticket)}</td><td>${badge(r.estado)}</td></tr>`).join("")}</tbody></table>`:"<p class='hint'>Ainda não existem reportes.</p>";
 }
@@ -217,10 +217,15 @@ function renderReportes(){
   <select onchange="setEstado('${r.dbid}',this.value)"><option ${r.estado==="Aguardar"?"selected":""}>Aguardar</option><option ${r.estado==="Resolvido"?"selected":""}>Resolvido</option><option ${r.estado==="Stand By"?"selected":""}>Stand By</option></select>
   <button class="linkbtn" onclick="editarReporte('${r.dbid}')">✏️</button>
   <button class="linkbtn danger" onclick="apagarReporte('${r.dbid}')">🗑️</button>
-  <button class="linkbtn" onclick='prepMail(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📧</button>
+  <button class="linkbtn" onclick="prepararEmailReporte('${r.dbid}')">📧</button>
   <button class="linkbtn" onclick="procurarOutlook('${r.dbid}')">🔎</button>
   </td></tr>`).join("")
   :"<tr><td colspan='9'>Sem resultados.</td></tr>";
+}
+
+function prepararEmailReporte(dbid){
+  const r=reports.find(x=>String(x.dbid)===String(dbid));
+  if(r) prepMail(r);
 }
 
 async function editarReporte(dbid){
@@ -303,10 +308,11 @@ async function guardarAtualizacao(mail){
   };
   const {data,error}=await supabaseClient.from("atualizacoes").insert(row).select().single();
   if(error){alert("Erro ao guardar atualização: "+error.message);return}
-  updates.unshift({...row,dbid:data.id,id:data.codigo, data:data.data_display,inicio:data.hora_inicial,fim:data.hora_final,servico:data.servico,motivo:data.motivo,obs:data.observacoes,aviso3Enviado:data.aviso3_enviado,aviso1Enviado:data.aviso1_enviado});
+  const novaUt={...row,dbid:data.id,id:data.codigo, data:data.data_display,inicio:data.hora_inicial,fim:data.hora_final,servico:data.servico,motivo:data.motivo,obs:data.observacoes,aviso3Enviado:data.aviso3_enviado,aviso1Enviado:data.aviso1_enviado};
+  updates.unshift(novaUt);
   localStorage.setItem("rg_update_template_v5",JSON.stringify({para:$("atPara").value,cc:$("atCc").value,bcc:$("atBcc").value,assunto3:$("atAssunto3").value,corpo3:$("atCorpo3").value,assunto1:$("atAssunto1").value,corpo1:$("atCorpo1").value}));
   renderUpdates();renderDash();
-  if(mail)gerarEmailUpdate(updates[0],3);else alert(`Atualização ${row.codigo} guardada.`);
+  if(mail)gerarEmailUpdate(novaUt.dbid,3);else alert(`Atualização ${row.codigo} guardada.`);
 }
 
 function diasAte(u){
@@ -325,7 +331,20 @@ function lembretesPendentes(){
 }
 
 function renderUpdates(){
-  $("tabelaAtualizacoes").innerHTML=updates.length?updates.map(u=>`<tr><td>${esc(u.id)}</td><td>${esc(u.data)}</td><td>${esc(u.inicio)}–${esc(u.fim)}</td><td>${esc(u.servico)}</td><td>${esc(u.estado)}</td><td>${u.lembretes?`3 dias: ${u.aviso3Enviado?"✅":"🟠"}<br>Véspera: ${u.aviso1Enviado?"✅":"🔴"}`:"—"}</td><td><button class="linkbtn" onclick='gerarEmailUpdate(${JSON.stringify(u)},3)'>3 dias</button><button class="linkbtn" onclick='gerarEmailUpdate(${JSON.stringify(u)},1)'>Véspera</button><button class="linkbtn" onclick="editarAtualizacao('${u.dbid}')">✏️</button><button class="linkbtn danger" onclick="apagarAtualizacao('${u.dbid}')">🗑️</button></td></tr>`).join("")
+  $("tabelaAtualizacoes").innerHTML=updates.length?updates.map(u=>`<tr>
+    <td>${esc(u.id)}</td>
+    <td>${esc(u.data)}</td>
+    <td>${esc(u.inicio)}–${esc(u.fim)}</td>
+    <td>${esc(u.servico)}</td>
+    <td>${esc(u.estado)}</td>
+    <td>${u.lembretes?`3 dias: ${u.aviso3Enviado?"✅":"🟠"}<br>Véspera: ${u.aviso1Enviado?"✅":"🔴"}`:"—"}</td>
+    <td>
+      <button class="linkbtn" onclick="gerarEmailUpdate('${u.dbid}', 3)">3 dias</button>
+      <button class="linkbtn" onclick="gerarEmailUpdate('${u.dbid}', 1)">Véspera</button>
+      <button class="linkbtn" onclick="editarAtualizacao('${u.dbid}')">✏️</button>
+      <button class="linkbtn danger" onclick="apagarAtualizacao('${u.dbid}')">🗑️</button>
+    </td>
+  </tr>`).join("")
   :"<tr><td colspan='7'>Sem atualizações registadas.</td></tr>";
 }
 
@@ -349,32 +368,36 @@ async function apagarAtualizacao(dbid){
   updates=updates.filter(x=>String(x.dbid)!==String(dbid));renderUpdates();renderDash();
 }
 
-// gerarEmailUpdate: adiciona o email do técnico no campo CC
-async function gerarEmailUpdate(u,tipo){
-  const dias=tipo===1?1:3;
-  const assunto=tipo===1?$("atAssunto1").value:$("atAssunto3").value;
-  const corpo=tipo===1?$("atCorpo1").value:$("atCorpo3").value;
-  const payload=tipo===1?{aviso1_enviado:true}:{aviso3_enviado:true};
+// gerarEmailUpdate: aceita ID único e trata o envio do email com variáveis tratadas
+async function gerarEmailUpdate(uOrId, tipo){
+  const u = typeof uOrId === "object" ? uOrId : updates.find(x => String(x.dbid) === String(uOrId));
+  if (!u) return;
+
+  const dias = tipo === 1 ? 1 : 3;
+  const assuntoTemplate = tipo === 1 ? $("atAssunto1").value : $("atAssunto3").value;
+  const corpoTemplate = tipo === 1 ? $("atCorpo1").value : $("atCorpo3").value;
+  const payload = tipo === 1 ? { aviso1_enviado: true } : { aviso3_enviado: true };
   
-  await supabaseClient.from("atualizacoes").update(payload).eq("id",u.dbid);
-  u[tipo===1?"aviso1Enviado":"aviso3Enviado"]=true;
-  renderUpdates();renderDash();
+  await supabaseClient.from("atualizacoes").update(payload).eq("id", u.dbid);
+  u[tipo === 1 ? "aviso1Enviado" : "aviso3Enviado"] = true;
+  renderUpdates();
+  renderDash();
 
   const para = ($("atPara").value || "").trim();
-  
-  // Junta o e-mail do técnico com o CC da página de atualizações
   const emailTecnico = obterEmailTecnico();
   const emailsCc = [emailTecnico, ($("atCc").value || "").trim()].filter(Boolean).join(";");
-
   const bcc = ($("atBcc").value || "").trim();
+
+  const assuntoProcessado = vars(assuntoTemplate, u, dias);
+  const corpoProcessado = vars(corpoTemplate, u, dias);
 
   let mailto = `mailto:${para}`;
   const params = [];
 
   if (emailsCc) params.push("cc=" + encodeURIComponent(emailsCc));
   if (bcc) params.push("bcc=" + encodeURIComponent(bcc));
-  if (subject) params.push("subject=" + encodeURIComponent(vars(assunto, u, dias)));
-  if (corpo) params.push("body=" + encodeURIComponent(vars(corpo, u, dias)));
+  if (assuntoProcessado) params.push("subject=" + encodeURIComponent(assuntoProcessado));
+  if (corpoProcessado) params.push("body=" + encodeURIComponent(corpoProcessado));
 
   if (params.length > 0) {
     mailto += "?" + params.join("&");
