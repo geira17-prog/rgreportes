@@ -85,7 +85,7 @@ async function carregarDados(){
   if(ue) throw ue;
   reports=(r||[]).map(x=>({
     dbid:x.id,id:x.codigo||`${x.sequencia}/${x.ano}`,ano:x.ano,sequencia:x.sequencia,
-    aplicacao:x.aplicacao,tecnico:x.tecnico,ticket:x.ticket,problema:x.problema,
+    aplicacao:x.aplicacao,identificadorMedidata:x.identificador_medidata||"",tecnico:x.tecnico,ticket:x.ticket,problema:x.problema,
     data:x.data_hora?new Date(x.data_hora).toLocaleString("pt-PT"):"",
     estado:x.estado,emailPreparado:x.email_preparado
   }));
@@ -128,6 +128,7 @@ document.querySelectorAll(".nav").forEach(b=>b.onclick=()=>showPage(b.dataset.pa
 
 async function limparFormulario(){
   $("ticket").value="";$("problema").value="";$("aplicacao").value="";
+  if($("identificadorMedidata")) $("identificadorMedidata").value="";
   await prep();
 }
 
@@ -138,6 +139,7 @@ async function guardar(mail){
   const s=nextSeq(), y=ano();
   const row={
     codigo:`${s}/${y}`,ano:y,sequencia:s,aplicacao:$("aplicacao").value,
+    identificador_medidata:$("identificadorMedidata")?$("identificadorMedidata").value.trim():"",
     tecnico:user.nome,ticket:$("ticket").value.trim(),problema:$("problema").value.trim(),
     data_hora:new Date().toISOString(),estado:$("estado").value,email_preparado:false
   };
@@ -145,6 +147,7 @@ async function guardar(mail){
   if(error){alert("Erro ao guardar o reporte: "+error.message);return}
   const r={
     dbid:data.id,id:data.codigo,ano:data.ano,sequencia:data.sequencia,aplicacao:data.aplicacao,
+    identificadorMedidata:data.identificador_medidata,
     tecnico:data.tecnico,ticket:data.ticket,problema:data.problema,data:new Date(data.data_hora).toLocaleString("pt-PT"),
     estado:data.estado,emailPreparado:data.email_preparado
   };
@@ -155,6 +158,7 @@ async function guardar(mail){
 
 function sub(t,r){
   return t.replaceAll("{ID}",r.id).replaceAll("{APLICACAO}",r.aplicacao)
+    .replaceAll("{IDENTIFICADOR_MEDIDATA}",r.identificadorMedidata||"")
     .replaceAll("{TECNICO}",r.tecnico).replaceAll("{TICKET}",r.ticket)
     .replaceAll("{PROBLEMA}",r.problema).replaceAll("{DATA}",r.data)
     .replaceAll("{ESTADO}",r.estado);
@@ -207,7 +211,7 @@ function renderReportes(){
   const q=($("pesquisa").value||"").toLowerCase(),f=$("filtroEstado").value;
   const list=reports.filter(r=>(!f||r.estado===f)&&Object.values(r).join(" ").toLowerCase().includes(q));
   $("tabela").innerHTML=list.length?list.map(r=>`<tr>
-  <td>${esc(r.id)}</td><td>${esc(r.aplicacao)}</td><td>${esc(r.tecnico)}</td><td>${esc(r.ticket)}</td>
+  <td>${esc(r.id)}</td><td>${esc(r.aplicacao)}</td><td>${esc(r.identificadorMedidata)}</td><td>${esc(r.tecnico)}</td><td>${esc(r.ticket)}</td>
   <td>${esc(r.problema)}</td><td>${esc(r.data)}</td><td>${badge(r.estado)}</td>
   <td class="actions-cell">
   <select onchange="setEstado('${r.dbid}',this.value)"><option ${r.estado==="Aguardar"?"selected":""}>Aguardar</option><option ${r.estado==="Resolvido"?"selected":""}>Resolvido</option><option ${r.estado==="Stand By"?"selected":""}>Stand By</option></select>
@@ -216,17 +220,18 @@ function renderReportes(){
   <button class="linkbtn" onclick='prepMail(${JSON.stringify(r).replace(/'/g,"&#39;")})'>📧</button>
   <button class="linkbtn" onclick="procurarOutlook('${r.dbid}')">🔎</button>
   </td></tr>`).join("")
-  :"<tr><td colspan='8'>Sem resultados.</td></tr>";
+  :"<tr><td colspan='9'>Sem resultados.</td></tr>";
 }
 
 async function editarReporte(dbid){
   const r=reports.find(x=>String(x.dbid)===String(dbid));if(!r)return;
   const a=prompt("Aplicação:",r.aplicacao);if(a===null)return;
+  const im=prompt("Identificador Medidata:",r.identificadorMedidata||"");if(im===null)return;
   const t=prompt("N.º Ticket:",r.ticket);if(t===null)return;
   const p=prompt("Problema:",r.problema);if(p===null)return;
-  const {error}=await supabaseClient.from("reportes").update({aplicacao:a,ticket:t,problema:p}).eq("id",dbid);
+  const {error}=await supabaseClient.from("reportes").update({aplicacao:a,identificador_medidata:im,ticket:t,problema:p}).eq("id",dbid);
   if(error){alert("Erro ao editar: "+error.message);return}
-  r.aplicacao=a;r.ticket=t;r.problema=p;renderReportes();renderDash();
+  r.aplicacao=a;r.identificadorMedidata=im;r.ticket=t;r.problema=p;renderReportes();renderDash();
 }
 
 async function apagarReporte(dbid){
@@ -368,7 +373,7 @@ async function gerarEmailUpdate(u,tipo){
 
   if (emailsCc) params.push("cc=" + encodeURIComponent(emailsCc));
   if (bcc) params.push("bcc=" + encodeURIComponent(bcc));
-  if (assunto) params.push("subject=" + encodeURIComponent(vars(assunto, u, dias)));
+  if (subject) params.push("subject=" + encodeURIComponent(vars(assunto, u, dias)));
   if (corpo) params.push("body=" + encodeURIComponent(vars(corpo, u, dias)));
 
   if (params.length > 0) {
